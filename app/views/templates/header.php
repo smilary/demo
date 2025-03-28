@@ -75,7 +75,7 @@ if (empty($_SESSION['csrf_token'])) {
         <ul data-v-4d4bf192="" data-v-422060c6="" role="menubar" class="el-menu" style="background-color: rgb(245, 247, 249); width: 220px; min-height: calc(100vh - 60px);" id="leftSidebar">
             <!-- 个人工作台 -->
             <div data-v-4d4bf192="" class="menu-wrapper">
-                <a href="workspace.php" aria-current="page" class="router-link-exact-active router-link-active" style="text-decoration: none;">
+                <a href="/demo/workspace_new.php" aria-current="page" class="router-link-exact-active router-link-active" style="text-decoration: none;">
                     <li role="menuitem" tabindex="-1" class="el-menu-item is-active submenu-title-noDropdown" style="padding-left: 20px; color: rgb(0, 58, 112); background-color: rgb(216 224 233); border-left: 3px solid #1890ff; transition: all 0.3s ease; font-size: 16px; font-family: 'Microsoft YaHei', Arial, sans-serif;">
                         <i class="el-icon-s-home"></i>
                         <span>个人工作台</span>

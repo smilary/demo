@@ -30,41 +30,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// 设置页面标题
+$page_title = '服务确认 - ' . htmlspecialchars($contract['contract_no']);
+
+// 设置激活菜单
+$active_menu = '合同管理';
+
+// 设置额外CSS文件
+$extra_css = ['styles/tabs.css', 'styles/function_pages.css'];
+
+// 设置内容视图
+$content_view = __FILE__;
+
+// 如果是通过菜单直接访问的页面，包含布局模板
+if (!defined('INCLUDED_IN_LAYOUT')) {
+    define('INCLUDED_IN_LAYOUT', true);
+    require_once __DIR__.'/../../views/templates/layout.php';
+    exit;
+}
 ?>
-<!DOCTYPE html>
-<html>
-<head>
-    <title>服务确认 - <?= htmlspecialchars($contract['contract_no']) ?></title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-        .container { max-width: 1200px; margin: 0 auto; }
-        h1, h2, h3 { color: #333; }
-        table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px; box-sizing: border-box; }
-        .btn { padding: 8px 15px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
-        .btn-danger { background-color: #f44336; }
-        .btn-secondary { background-color: #555; }
-        .breadcrumb { margin-bottom: 20px; }
-        .breadcrumb a { text-decoration: none; color: #0275d8; }
-    </style>
-</head>
-<body>
-    <div class="container">
+<div class="page-container">
+    
         <div class="breadcrumb">
             <a href="contracts.php">合同管理</a> &gt; 
             <a href="contract_details.php?contract_id=<?= $contract_id ?>">合同详情</a> &gt; 
             服务确认
         </div>
         
-        <h1>服务确认</h1>
+        <div class="page-header">
+            <h2>服务确认</h2>
+            <div class="page-description">管理和确认合同服务完成情况</div>
+        </div>
         
         <div class="contract-info">
             <h2>合同基本信息</h2>
-            <table>
+            <table class="table">
                 <tr>
                     <th>合同编号</th>
                     <td><?= htmlspecialchars($contract['contract_no']) ?></td>
@@ -94,48 +94,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </table>
         </div>
         
-        <div class="service-confirmation">
+        <div class="search-bar">
             <h2>服务确认表单</h2>
-            <form method="post">
+            <form method="post" class="search-form">
                 <div class="form-group">
-                    <label>服务项目:</label>
-                    <input type="text" name="service_item" required>
+                    <label>服务项目</label>
+                    <input type="text" name="service_item" class="form-control" required>
                 </div>
                 
                 <div class="form-group">
-                    <label>服务内容:</label>
-                    <textarea name="service_content" rows="4" required></textarea>
+                    <label>服务内容</label>
+                    <textarea name="service_content" class="form-control" rows="4" required></textarea>
                 </div>
                 
                 <div class="form-group">
-                    <label>服务开始日期:</label>
-                    <input type="date" name="service_start_date" required>
+                    <label>服务开始日期</label>
+                    <input type="date" name="service_start_date" class="form-control" required>
                 </div>
                 
                 <div class="form-group">
-                    <label>服务结束日期:</label>
-                    <input type="date" name="service_end_date" required>
+                    <label>服务结束日期</label>
+                    <input type="date" name="service_end_date" class="form-control" required>
                 </div>
                 
                 <div class="form-group">
-                    <label>服务确认人:</label>
-                    <input type="text" name="confirmed_by" required>
+                    <label>服务确认人</label>
+                    <input type="text" name="confirmed_by" class="form-control" required>
                 </div>
                 
                 <div class="form-group">
-                    <label>确认日期:</label>
-                    <input type="date" name="confirmation_date" required value="<?= date('Y-m-d') ?>">
+                    <label>确认日期</label>
+                    <input type="date" name="confirmation_date" class="form-control" required value="<?= date('Y-m-d') ?>">
                 </div>
                 
                 <div class="form-group">
-                    <label>备注:</label>
-                    <textarea name="remarks" rows="3"></textarea>
+                    <label>备注</label>
+                    <textarea name="remarks" class="form-control" rows="3"></textarea>
                 </div>
                 
-                <button type="submit" name="confirm_service" class="btn">确认服务</button>
-                <a href="contract_details.php?contract_id=<?= $contract_id ?>" class="btn btn-secondary">返回</a>
+                <button type="submit" name="confirm_service" class="btn btn-primary">确认服务</button>
+                <a href="contract_details.php?contract_id=<?= $contract_id ?>" class="btn btn-default">返回</a>
             </form>
         </div>
     </div>
-</body>
-</html>

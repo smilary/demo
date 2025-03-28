@@ -1,5 +1,5 @@
 <?php
-require_once '/lib/contract_manager.php';
+require_once '../../../lib/contract_manager.php';
 
 // 处理表单提交
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

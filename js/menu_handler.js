@@ -31,6 +31,49 @@ document.addEventListener('DOMContentLoaded', function() {
             if (link && link.startsWith('#/')) {
                 const pageName = link.substring(2); // 去掉#/前缀
                 loadFunctionPage(pageName);
+                
+                // 更新页面标题，用于标签显示
+                const menuTitle = this.querySelector('span').textContent;
+                document.title = menuTitle + ' - 项目管理系统';
+                
+                // 触发标签更新事件
+                const tabUpdateEvent = new CustomEvent('tabUpdate', {
+                    detail: {
+                        title: menuTitle,
+                        url: window.location.href
+                    }
+                });
+                document.dispatchEvent(tabUpdateEvent);
+                
+                // 确保标签显示
+                setTimeout(function() {
+                    // 检查标签是否已创建
+                    const tabsContainer = document.querySelector('.tabs-container');
+                    if (tabsContainer) {
+                        // 如果标签容器存在但没有标签，手动创建一个
+                        const tabs = document.querySelector('.tabs');
+                        if (tabs && tabs.children.length === 0) {
+                            const tabId = 'tab_' + new Date().getTime();
+                            const newTab = document.createElement('div');
+                            newTab.className = 'tab active';
+                            newTab.setAttribute('data-tab-id', tabId);
+                            newTab.setAttribute('data-tab-url', window.location.href);
+                            
+                            const tabTitle = document.createElement('span');
+                            tabTitle.className = 'tab-title';
+                            tabTitle.textContent = menuTitle;
+                            
+                            const tabClose = document.createElement('span');
+                            tabClose.className = 'tab-close';
+                            tabClose.textContent = '×';
+                            tabClose.onclick = function() { closeTab(tabId); };
+                            
+                            newTab.appendChild(tabTitle);
+                            newTab.appendChild(tabClose);
+                            tabs.appendChild(newTab);
+                        }
+                    }
+                }, 500);
             }
         });
     });

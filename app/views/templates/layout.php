@@ -4,7 +4,7 @@ require_once __DIR__.'/../../../config/db_connect.php';
 
 // 检查用户是否已登录
 if (!isset($_SESSION['user_id'])) {
-    header('Location: index.php');
+    header('Location: main.php');
     exit;
 }
 
@@ -21,46 +21,59 @@ $active_menu = isset($active_menu) ? $active_menu : '';
 
 // 设置额外CSS文件
 $extra_css = isset($extra_css) ? $extra_css : [];
-// 添加标签样式
-$extra_css[] = 'styles/tabs.css';
+
+// 判断是否为工作台页面
+$is_workspace = strpos($page_title, '个人工作台') !== false;
+
+// 只在非工作台页面添加标签样式
+if (!$is_workspace) {
+    $extra_css[] = 'styles/tabs.css';
+}
 
 // 设置额外JS文件
 $extra_js = isset($extra_js) ? $extra_js : [];
 
-// 初始化标签会话存储
-if (!isset($_SESSION['tabs'])) {
-    $_SESSION['tabs'] = [];
-}
+// 判断是否为工作台页面
+$is_workspace = strpos($page_title, '个人工作台') !== false;
 
-// 当前页面信息
-$current_page = [
-    'title' => $page_title,
-    'url' => $_SERVER['REQUEST_URI'],
-    'id' => uniqid('tab_')
-];
-
-// 添加或激活当前标签
-$tab_exists = false;
-foreach ($_SESSION['tabs'] as $key => $tab) {
-    if ($tab['url'] == $current_page['url']) {
-        $_SESSION['tabs'][$key]['active'] = true;
-        $current_page['id'] = $tab['id'];
-        $tab_exists = true;
-    } else {
-        $_SESSION['tabs'][$key]['active'] = false;
+// 只在非工作台页面处理标签
+if (!$is_workspace) {
+    // 初始化标签会话存储
+    if (!isset($_SESSION['tabs'])) {
+        $_SESSION['tabs'] = [];
     }
-}
-
-if (!$tab_exists) {
-    $current_page['active'] = true;
-    $_SESSION['tabs'][] = $current_page;
+    
+    // 当前页面信息
+    $current_page = [
+        'title' => $page_title,
+        'url' => $_SERVER['REQUEST_URI'],
+        'id' => uniqid('tab_')
+    ];
+    
+    // 添加或激活当前标签
+    $tab_exists = false;
+    foreach ($_SESSION['tabs'] as $key => $tab) {
+        if ($tab['url'] == $current_page['url']) {
+            $_SESSION['tabs'][$key]['active'] = true;
+            $current_page['id'] = $tab['id'];
+            $tab_exists = true;
+        } else {
+            $_SESSION['tabs'][$key]['active'] = false;
+        }
+    }
+    
+    if (!$tab_exists) {
+        $current_page['active'] = true;
+        $_SESSION['tabs'][] = $current_page;
+    }
 }
 
 // 包含头部模板
 include_once __DIR__.'/header.php';
 ?>
 
-<!-- 标签栏 -->
+<!-- 标签栏 - 只在非工作台页面显示 -->
+<?php if (!$is_workspace): ?>
 <div class="tabs-container">
     <div class="tabs-wrapper">
         <div class="tabs">
@@ -77,6 +90,7 @@ include_once __DIR__.'/header.php';
         </div>
     </div>
 </div>
+<?php endif; ?>
 
 <!-- 主内容区域 -->
 <div id="mainContent">

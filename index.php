@@ -24,7 +24,7 @@ if (isset($_GET['logout'])) {
 
 // 检查是否已登录
 if (isset($_SESSION['user_id'])) {
-    header('Location: dashboard.php');
+    header('Location: main.php');
     exit;
 }
 
@@ -56,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     setcookie('remember_me', $cookie_value, time() + 86400 * 30, '/');
                 }
                 
-                header('Location: dashboard.php');
+                header('Location: main.php');
                 exit;
             } else {
                 $error = '用户名或密码错误';
@@ -82,7 +82,7 @@ if (empty($_SESSION['user_id']) && isset($_COOKIE['remember_me'])) {
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
             $_SESSION['real_name'] = $user['real_name'];
-            header('Location: dashboard.php');
+            header('Location: main.php');
             exit;
         }
     }
