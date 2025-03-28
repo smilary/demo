@@ -179,6 +179,8 @@ if (isset($_GET['edit_item'])) {
             <div class="tab <?= $active_tab == 'details' ? 'active' : '' ?>" onclick="location.href='contract_details.php?contract_id=<?= $contract_id ?>&tab=details'">合同明细</div>
             <div class="tab <?= $active_tab == 'files' ? 'active' : '' ?>" onclick="location.href='contract_details.php?contract_id=<?= $contract_id ?>&tab=files'">合同文件</div>
             <div class="tab <?= $active_tab == 'approvals' ? 'active' : '' ?>" onclick="location.href='contract_details.php?contract_id=<?= $contract_id ?>&tab=approvals'">审批记录</div>
+            <div class="tab <?= $active_tab == 'service' ? 'active' : '' ?>" onclick="location.href='service_confirmation.php?contract_id=<?= $contract_id ?>'">服务确认</div>
+            <div class="tab <?= $active_tab == 'milestone' ? 'active' : '' ?>" onclick="location.href='milestone_confirmation.php?contract_id=<?= $contract_id ?>'">里程碑确认</div>
         </div>
         
         <!-- 合同明细标签页 -->

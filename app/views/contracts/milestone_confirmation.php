@@ -1,279 +1,143 @@
 <?php
-// 里程碑确认页面
-?>
+require_once '../../../lib/contract_manager.php';
 
+// 获取合同ID
+$contract_id = isset($_GET['contract_id']) ? intval($_GET['contract_id']) : 0;
+if (!$contract_id) {
+    header("Location: contracts.php");
+    exit;
+}
+
+// 获取合同基本信息
+$contract = get_contract($contract_id);
+if (!$contract) {
+    header("Location: contracts.php");
+    exit;
+}
+
+// 处理表单提交
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['confirm_milestone'])) {
+        // 这里添加里程碑确认的处理逻辑
+        // 实际项目中需要实现相应的函数
+        
+        // 示例：更新合同状态为里程碑已确认
+        // confirm_contract_milestone($contract_id, $_POST);
+        
+        // 重定向回详情页
+        header("Location: contract_details.php?contract_id=$contract_id&tab=milestone");
+        exit;
+    }
+}
+
+// 设置页面标题
+$page_title = '里程碑确认 - ' . htmlspecialchars($contract['contract_no']);
+
+// 设置激活菜单
+$active_menu = '合同管理';
+
+// 设置额外CSS文件
+$extra_css = ['styles/tabs.css', 'styles/function_pages.css'];
+
+// 设置内容视图
+$content_view = __FILE__;
+
+// 如果是通过菜单直接访问的页面，包含布局模板
+if (!defined('INCLUDED_IN_LAYOUT')) {
+    define('INCLUDED_IN_LAYOUT', true);
+    require_once __DIR__.'/../../views/templates/layout.php';
+    exit;
+}
+?>
 <div class="page-container">
+    <div class="breadcrumb">
+        <a href="contracts.php">合同管理</a> &gt; 
+        <a href="contract_details.php?contract_id=<?= $contract_id ?>">合同详情</a> &gt; 
+        里程碑确认
+    </div>
+    
     <div class="page-header">
         <h2>里程碑确认</h2>
         <div class="page-description">管理和确认项目里程碑完成情况</div>
     </div>
     
-    <div class="page-content">
-        <div class="search-bar">
-            <div class="search-form">
-                <div class="form-group">
-                    <label>合同编号</label>
-                    <input type="text" class="form-control" placeholder="请输入合同编号">
-                </div>
-                <div class="form-group">
-                    <label>项目名称</label>
-                    <input type="text" class="form-control" placeholder="请输入项目名称">
-                </div>
-                <div class="form-group">
-                    <label>状态</label>
-                    <select class="form-control">
-                        <option value="">全部</option>
-                        <option value="pending">待确认</option>
-                        <option value="confirmed">已确认</option>
-                        <option value="rejected">已拒绝</option>
-                    </select>
-                </div>
-                <button class="btn btn-primary">搜索</button>
-                <button class="btn btn-default">重置</button>
+    <div class="contract-info">
+        <h2>合同基本信息</h2>
+        <table class="table">
+            <tr>
+                <th>合同编号</th>
+                <td><?= htmlspecialchars($contract['contract_no']) ?></td>
+                <th>合同名称</th>
+                <td><?= htmlspecialchars(isset($contract['contract_name']) ? $contract['contract_name'] : '-') ?></td>
+            </tr>
+            <tr>
+                <th>客户名称</th>
+                <td colspan="3"><?= htmlspecialchars($contract['client_name']) ?></td>
+            </tr>
+            <tr>
+                <th>合同类型</th>
+                <td>
+                    <?php 
+                    $contract_types = [
+                        'SALES' => '销售合同',
+                        'PURCHASE' => '采购合同',
+                        'SERVICE' => '服务合同',
+                        'OTHER' => '其他合同'
+                    ];
+                    echo isset($contract_types[$contract['contract_type']]) ? $contract_types[$contract['contract_type']] : $contract['contract_type'];
+                    ?>
+                </td>
+                <th>合同金额</th>
+                <td><?= number_format($contract['amount'], 2) ?></td>
+            </tr>
+        </table>
+    </div>
+    
+    <div class="search-bar">
+        <h2>里程碑确认表单</h2>
+        <form method="post" class="search-form">
+            <div class="form-group">
+                <label>里程碑名称</label>
+                <input type="text" name="milestone_name" class="form-control" required>
             </div>
-        </div>
-        
-        <div class="data-table">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>合同编号</th>
-                        <th>项目名称</th>
-                        <th>里程碑名称</th>
-                        <th>计划完成日期</th>
-                        <th>实际完成日期</th>
-                        <th>状态</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>CT-2023-001</td>
-                        <td>ERP系统升级项目</td>
-                        <td>需求分析完成</td>
-                        <td>2023-10-15</td>
-                        <td>2023-10-18</td>
-                        <td><span class="status-badge confirmed">已确认</span></td>
-                        <td>
-                            <button class="btn btn-sm btn-info">查看</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>CT-2023-001</td>
-                        <td>ERP系统升级项目</td>
-                        <td>系统设计完成</td>
-                        <td>2023-11-20</td>
-                        <td>2023-11-25</td>
-                        <td><span class="status-badge confirmed">已确认</span></td>
-                        <td>
-                            <button class="btn btn-sm btn-info">查看</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>CT-2023-001</td>
-                        <td>ERP系统升级项目</td>
-                        <td>开发完成</td>
-                        <td>2023-12-30</td>
-                        <td>-</td>
-                        <td><span class="status-badge pending">待确认</span></td>
-                        <td>
-                            <button class="btn btn-sm btn-primary">确认</button>
-                            <button class="btn btn-sm btn-danger">拒绝</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>CT-2023-002</td>
-                        <td>OA系统实施项目</td>
-                        <td>需求调研</td>
-                        <td>2023-11-10</td>
-                        <td>2023-11-12</td>
-                        <td><span class="status-badge confirmed">已确认</span></td>
-                        <td>
-                            <button class="btn btn-sm btn-info">查看</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>CT-2023-002</td>
-                        <td>OA系统实施项目</td>
-                        <td>系统配置</td>
-                        <td>2023-12-15</td>
-                        <td>-</td>
-                        <td><span class="status-badge pending">待确认</span></td>
-                        <td>
-                            <button class="btn btn-sm btn-primary">确认</button>
-                            <button class="btn btn-sm btn-danger">拒绝</button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        
-        <div class="pagination">
-            <span>共 15 条记录</span>
-            <ul class="page-list">
-                <li class="disabled"><a href="#">上一页</a></li>
-                <li class="active"><a href="#">1</a></li>
-                <li><a href="#">2</a></li>
-                <li><a href="#">3</a></li>
-                <li><a href="#">下一页</a></li>
-            </ul>
-        </div>
+            
+            <div class="form-group">
+                <label>里程碑描述</label>
+                <textarea name="milestone_description" class="form-control" rows="4" required></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>计划完成日期</label>
+                <input type="date" name="planned_completion_date" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label>实际完成日期</label>
+                <input type="date" name="actual_completion_date" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label>完成比例 (%)</label>
+                <input type="number" name="completion_percentage" class="form-control" min="0" max="100" required>
+            </div>
+            
+            <div class="form-group">
+                <label>确认人</label>
+                <input type="text" name="confirmed_by" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label>确认日期</label>
+                <input type="date" name="confirmation_date" class="form-control" required value="<?= date('Y-m-d') ?>">
+            </div>
+            
+            <div class="form-group">
+                <label>备注</label>
+                <textarea name="remarks" class="form-control" rows="3"></textarea>
+            </div>
+            
+            <button type="submit" name="confirm_milestone" class="btn btn-primary">确认里程碑</button>
+            <a href="contract_details.php?contract_id=<?= $contract_id ?>" class="btn btn-default">返回</a>
+        </form>
     </div>
 </div>
-
-<style>
-    .page-container {
-        padding: 20px;
-    }
-    
-    .page-header {
-        margin-bottom: 20px;
-    }
-    
-    .page-header h2 {
-        margin: 0 0 10px 0;
-        font-size: 24px;
-        color: #333;
-    }
-    
-    .page-description {
-        color: #666;
-        font-size: 14px;
-    }
-    
-    .search-bar {
-        background: #f9f9f9;
-        padding: 15px;
-        border-radius: 4px;
-        margin-bottom: 20px;
-    }
-    
-    .search-form {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 15px;
-        align-items: flex-end;
-    }
-    
-    .form-group {
-        margin-bottom: 0;
-    }
-    
-    .form-control {
-        padding: 8px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-    }
-    
-    .btn {
-        padding: 8px 15px;
-        border-radius: 4px;
-        border: none;
-        cursor: pointer;
-    }
-    
-    .btn-primary {
-        background-color: #1890ff;
-        color: white;
-    }
-    
-    .btn-default {
-        background-color: #f0f0f0;
-        color: #333;
-    }
-    
-    .btn-sm {
-        padding: 5px 10px;
-        font-size: 12px;
-    }
-    
-    .btn-info {
-        background-color: #17a2b8;
-        color: white;
-    }
-    
-    .btn-danger {
-        background-color: #dc3545;
-        color: white;
-    }
-    
-    .data-table {
-        margin-bottom: 20px;
-    }
-    
-    .table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-    
-    .table th, .table td {
-        padding: 12px 15px;
-        border-bottom: 1px solid #eee;
-        text-align: left;
-    }
-    
-    .table th {
-        background-color: #f5f7f9;
-        font-weight: bold;
-        color: #333;
-    }
-    
-    .status-badge {
-        display: inline-block;
-        padding: 3px 8px;
-        border-radius: 3px;
-        font-size: 12px;
-    }
-    
-    .status-badge.confirmed {
-        background-color: #52c41a;
-        color: white;
-    }
-    
-    .status-badge.pending {
-        background-color: #faad14;
-        color: white;
-    }
-    
-    .status-badge.rejected {
-        background-color: #f5222d;
-        color: white;
-    }
-    
-    .pagination {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    
-    .page-list {
-        display: flex;
-        list-style: none;
-        padding: 0;
-        margin: 0;
-    }
-    
-    .page-list li {
-        margin: 0 5px;
-    }
-    
-    .page-list li a {
-        display: block;
-        padding: 5px 10px;
-        border: 1px solid #ddd;
-        border-radius: 3px;
-        text-decoration: none;
-        color: #333;
-    }
-    
-    .page-list li.active a {
-        background-color: #1890ff;
-        color: white;
-        border-color: #1890ff;
-    }
-    
-    .page-list li.disabled a {
-        color: #ccc;
-        cursor: not-allowed;
-    }
-</style>
