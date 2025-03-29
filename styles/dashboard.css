@@ -47,6 +47,10 @@
     display: flex;
     align-items: center;
 }
+.logo img {
+    max-height: 40px;
+    width: auto;
+}
 .navbar-parts {
     flex: 1;
     display: flex;
@@ -176,9 +180,18 @@
 .el-menu-item {
     height: 50px;
     line-height: 50px;
+    text-align: left;
+    padding-left: 0 !important;
+    margin-left: 0;
+}
+
+.el-menu-item i {
+    margin-left: 0 !important;
+    padding-left: 0;
 }
 .el-menu-item.is-active {
     position: relative;
+    text-align: left;
 }
 .el-menu-item.is-active:before {
     content: '';
@@ -188,4 +201,14 @@
     bottom: 0;
     width: 3px;
     background: #1890ff;
+}
+.submenu-title-noDropdown {
+    text-align: left;
+    padding-left: 0 !important;
+    margin-left: 0;
+}
+
+.el-menu {
+    padding-left: 0 !important;
+    margin-left: 0 !important;
 }

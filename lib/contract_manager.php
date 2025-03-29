@@ -488,6 +488,28 @@ function get_active_contracts($search = '', $page = 1, $per_page = 10) {
         'per_page' => $per_page
     ];
 }
+// 获取合同里程碑列表
+function get_contract_milestones($contract_id) {
+    global $db;
+    
+    $stmt = $db->prepare("SELECT * FROM contract_milestones 
+                         WHERE contract_id = ? 
+                         ORDER BY completion_date ASC");
+    $stmt->execute([$contract_id]);
+    return $stmt->fetchAll();
+}
+
+// 获取合同服务确认列表
+function get_contract_services($contract_id) {
+    global $db;
+    
+    $stmt = $db->prepare("SELECT * FROM contract_services 
+                         WHERE contract_id = ? 
+                         ORDER BY service_start_date ASC");
+    $stmt->execute([$contract_id]);
+    return $stmt->fetchAll();
+}
+
 // 获取项目统计数据
 function get_project_stats() {
     global $db;

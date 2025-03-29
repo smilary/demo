@@ -3,7 +3,7 @@
 require_once __DIR__.'/../../../lib/dashboard_manager.php';
 
 // 设置页面标题
-$page_title = '个人工作台 - 项目管理系统';
+$page_title = '个人工作台';
 
 // 设置激活菜单
 $active_menu = '';

@@ -95,7 +95,7 @@ if (empty($_SESSION['user_id']) && isset($_COOKIE['remember_me'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>项目管理系统 - 登录</title>
     <!-- 引入Element UI样式，与dashboard.php保持一致 -->
-    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <link rel="stylesheet" href="/styles/element-ui/index.css">
     <link href="styles/dashboard.css" rel="stylesheet">
     <link href="styles/login.css" rel="stylesheet">
 </head>

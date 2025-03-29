@@ -50,30 +50,63 @@ document.addEventListener('DOMContentLoaded', function() {
                     // 检查标签是否已创建
                     const tabsContainer = document.querySelector('.tabs-container');
                     if (tabsContainer) {
-                        // 如果标签容器存在但没有标签，手动创建一个
+                        // 获取当前标签列表
                         const tabs = document.querySelector('.tabs');
-                        if (tabs && tabs.children.length === 0) {
-                            const tabId = 'tab_' + new Date().getTime();
-                            const newTab = document.createElement('div');
-                            newTab.className = 'tab active';
-                            newTab.setAttribute('data-tab-id', tabId);
-                            newTab.setAttribute('data-tab-url', window.location.href);
+                        if (tabs) {
+                            // 检查是否已存在相同URL的标签
+                            let existingTab = null;
+                            const allTabs = tabs.querySelectorAll('.tab');
                             
-                            const tabTitle = document.createElement('span');
-                            tabTitle.className = 'tab-title';
-                            tabTitle.textContent = menuTitle;
+                            allTabs.forEach(tab => {
+                                if (tab.getAttribute('data-tab-url') === window.location.href) {
+                                    existingTab = tab;
+                                }
+                            });
                             
-                            const tabClose = document.createElement('span');
-                            tabClose.className = 'tab-close';
-                            tabClose.textContent = '×';
-                            tabClose.onclick = function() { closeTab(tabId); };
-                            
-                            newTab.appendChild(tabTitle);
-                            newTab.appendChild(tabClose);
-                            tabs.appendChild(newTab);
+                            // 如果不存在相同URL的标签，则创建新标签
+                            if (!existingTab) {
+                                const tabId = 'tab_' + new Date().getTime();
+                                const newTab = document.createElement('div');
+                                newTab.className = 'tab active';
+                                newTab.setAttribute('data-tab-id', tabId);
+                                newTab.setAttribute('data-tab-url', window.location.href);
+                                newTab.onclick = function() { switchTab(tabId); };
+                                
+                                const tabTitle = document.createElement('span');
+                                tabTitle.className = 'tab-title';
+                                tabTitle.textContent = menuTitle;
+                                
+                                const tabClose = document.createElement('span');
+                                tabClose.className = 'tab-close';
+                                tabClose.textContent = '×';
+                                tabClose.onclick = function(e) { 
+                                    e.stopPropagation();
+                                    closeTab(tabId); 
+                                };
+                                
+                                newTab.appendChild(tabTitle);
+                                newTab.appendChild(tabClose);
+                                tabs.appendChild(newTab);
+                                
+                                // 设置其他标签为非活动状态
+                                allTabs.forEach(tab => {
+                                    tab.classList.remove('active');
+                                });
+                                
+                                // 检查标签数量并显示警告
+                                if (typeof checkTabsLimit === 'function') {
+                                    checkTabsLimit();
+                                }
+                            } else {
+                                // 如果存在相同URL的标签，则激活它
+                                allTabs.forEach(tab => {
+                                    tab.classList.remove('active');
+                                });
+                                existingTab.classList.add('active');
+                            }
                         }
                     }
-                }, 500);
+                }, 200);
             }
         });
     });
@@ -91,10 +124,18 @@ document.addEventListener('DOMContentLoaded', function() {
             // 映射页面名称到实际文件路径
             switch(pageName) {
                 // 合同管理模块
+                case 'contracts':
+                    pagePath = 'app/views/contracts/contracts.php';
+                    break;
+                case 'contract_details':
+                    pagePath = 'app/views/contracts/contract_details.php';
+                    break;
                 case 'contractServiceConfirmation':
+                case 'service_confirmation':
                     pagePath = 'app/views/contracts/service_confirmation.php';
                     break;
                 case 'tyTsMilestoneConfirmation':
+                case 'milestone_confirmation':
                     pagePath = 'app/views/contracts/milestone_confirmation.php';
                     break;
                 case 'contractConfirmationAcceptance':
