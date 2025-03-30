@@ -103,6 +103,8 @@ if (($is_workspace && empty($_SESSION['tabs'])) || (!$is_workspace && !$tab_exis
 <html>
 <head>
     <title><?php echo isset($page_title) ? $page_title : '项目管理系统'; ?></title>
+    <!-- CSRF Token -->
+    <meta name="csrf-token" content="<?php echo $_SESSION['csrf_token']; ?>">
     <!-- 引入Element UI样式 -->
     <link rel="stylesheet" href="styles/element-ui/index.css">
     <link rel="stylesheet" href="styles/dashboard.css">
@@ -203,9 +205,12 @@ if (($is_workspace && empty($_SESSION['tabs'])) || (!$is_workspace && !$tab_exis
                     <div class="tabs">
                         <?php if (isset($_SESSION['tabs']) && !empty($_SESSION['tabs'])): ?>
                             <?php foreach ($_SESSION['tabs'] as $tab): ?>
+                                <?php $is_workspace_tab = strpos($tab['title'], '个人工作台') !== false; ?>
                                 <div class="tab <?php echo $tab['active'] ? 'active' : ''; ?>" data-tab-id="<?php echo $tab['id']; ?>" data-tab-url="<?php echo htmlspecialchars($tab['url']); ?>" onclick="switchTab('<?php echo $tab['id']; ?>')">
                                     <span class="tab-title"><?php echo htmlspecialchars($tab['title']); ?></span>
-                                    <span class="tab-close" onclick="closeTab('<?php echo $tab['id']; ?>')">×</span>
+                                    <?php if (!$is_workspace_tab): ?>
+                                        <span class="tab-close" onclick="closeTab('<?php echo $tab['id']; ?>', event)">×</span>
+                                    <?php endif; ?>
                                 </div>
                             <?php endforeach; ?>
                         <?php endif; ?>
@@ -230,14 +235,18 @@ if (($is_workspace && empty($_SESSION['tabs'])) || (!$is_workspace && !$tab_exis
     </div>
 
     <!-- JavaScript代码 -->
+    <!-- 引入标签管理脚本 -->
+    <script src="js/tab_session_handler.js"></script>
+    <script src="js/menu_handler.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // 添加CSRF Token到AJAX请求头
-            $.ajaxSetup({
-                headers: {
-                    'X-CSRF-TOKEN': '<?= $_SESSION["csrf_token"] ?>'
-                }
-            });
+                    // 添加CSRF Token和请求类型到AJAX请求头
+                    $.ajaxSetup({
+                        headers: {
+                            'X-CSRF-TOKEN': '<?= $_SESSION["csrf_token"] ?>',
+                            'X-Requested-With': 'XMLHttpRequest'  // 确保所有AJAX请求都包含这个头部
+                        }
+                    });
             
             // 为顶部菜单添加点击事件
             const topMenuItems = document.querySelectorAll('.top-menus-item');
@@ -340,67 +349,301 @@ if (($is_workspace && empty($_SESSION['tabs'])) || (!$is_workspace && !$tab_exis
                 // 查找要切换到的标签
                 const tabs = document.querySelectorAll('.tab');
                 let targetUrl = '';
+                let targetTab = null;
                 
-                // 遍历所有标签，找到目标标签的URL
+                // 遍历所有标签，找到目标标签的URL和对象
                 tabs.forEach(tab => {
                     if (tab.getAttribute('data-tab-id') === tabId) {
                         targetUrl = tab.getAttribute('data-tab-url');
+                        targetTab = tab;
+                        // 设置当前标签为活动状态
+                        tab.classList.add('active');
+                    } else {
+                        // 移除其他标签的活动状态
+                        tab.classList.remove('active');
                     }
                 });
                 
-                // 如果找到了目标URL，则跳转
-                if (targetUrl) {
-                    window.location.href = targetUrl;
+                // 如果找到了目标URL
+                if (targetUrl && targetTab) {
+                    // 发送AJAX请求，更新标签活动状态
+                    $.ajax({
+                        url: 'api/switch_tab.php',
+                        type: 'POST',
+                        data: {
+                            tab_id: tabId,
+                            csrf_token: getCsrfToken()
+                        },
+                        success: function(response) {
+                            console.log('标签状态已更新');
+                            
+                            // 检查URL是否包含功能页面标识
+                            if (targetUrl.includes('#/')) {
+                                // 提取页面名称
+                                const pageName = targetUrl.split('#/')[1];
+                                
+                                // 使用loadFunctionPage函数加载内容
+                                loadFunctionPage(pageName);
+                                
+                                // 更新页面标题
+                                const tabTitle = targetTab.querySelector('.tab-title').textContent;
+                                document.title = tabTitle + ' - 项目管理系统';
+                                
+                                // 更新浏览器地址栏，但不刷新页面
+                                history.pushState(null, tabTitle, targetUrl);
+                            } else if (targetUrl === window.location.href) {
+                                // 如果是当前URL，不执行任何操作
+                                return;
+                            } else if (targetUrl.includes('main.php')) {
+                                // 对于工作台页面，使用AJAX加载内容
+                                $.ajax({
+                                    url: 'api/workspace_data.php',
+                                    type: 'GET',
+                                    success: function(data) {
+                                        const mainContent = document.getElementById('mainContent');
+                                        if (mainContent) {
+                                            mainContent.innerHTML = data;
+                                        }
+                                        // 更新页面标题
+                                        document.title = '个人工作台 - 项目管理系统';
+                                        
+                                        // 更新浏览器地址栏，但不刷新页面
+                                        history.pushState(null, '个人工作台', targetUrl);
+                                    },
+                                    error: function(xhr, status, error) {
+                                        console.error('加载工作台内容失败:', error);
+                                    }
+                                });
+                            } else {
+                                // 对于其他页面（非#/开头的URL），使用传统跳转
+                                window.location.href = targetUrl;
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            console.error('更新标签状态失败:', error);
+                            // 出错时回退到传统跳转
+                            window.location.href = targetUrl;
+                        }
+                    });
                 }
             };
             
+            // 加载功能页面的函数
+            function loadFunctionPage(pageName) {
+                // 显示加载中状态
+                const mainContent = document.getElementById('mainContent');
+                if (mainContent) {
+                    mainContent.innerHTML = '<div class="loading-indicator"><i class="el-icon-loading"></i> 正在加载...</div>';
+                    
+                    // 根据页面名称确定要加载的实际页面路径
+                    let pagePath = '';
+                    
+                    // 映射页面名称到实际文件路径
+                    switch(pageName) {
+                        // 合同管理模块
+                        case 'contracts':
+                            pagePath = 'app/views/contracts/contracts.php';
+                            break;
+                        case 'contract_details':
+                            pagePath = 'app/views/contracts/contract_details.php';
+                            break;
+                        case 'contractServiceConfirmation':
+                        case 'service_confirmation':
+                            pagePath = 'app/views/contracts/service_confirmation.php';
+                            break;
+                        case 'tyTsMilestoneConfirmation':
+                        case 'milestone_confirmation':
+                            pagePath = 'app/views/contracts/milestone_confirmation.php';
+                            break;
+                        case 'contractConfirmationAcceptance':
+                            pagePath = 'app/views/contracts/contract_acceptance.php';
+                            break;
+                        case 'initiateContractFines':
+                            pagePath = 'app/views/contracts/contract_fines.php';
+                            break;
+                            
+                        // 项目管理模块
+                        case 'projectList':
+                            pagePath = 'app/views/projects/project_list.php';
+                            break;
+                        case 'projectSchedule':
+                            pagePath = 'app/views/projects/project_schedule.php';
+                            break;
+                        case 'projectResource':
+                            pagePath = 'app/views/projects/project_resource.php';
+                            break;
+                            
+                        // 生产指令模块
+                        case 'productionOrders':
+                            pagePath = 'app/views/production/production_orders.php';
+                            break;
+                        case 'productionSchedule':
+                            pagePath = 'app/views/production/production_schedule.php';
+                            break;
+                            
+                        // 采购管理模块
+                        case 'purchaseOrderConfirmation':
+                            pagePath = 'app/views/purchase/purchase_orders.php';
+                            break;
+                        case 'materialInventoryManagement':
+                            pagePath = 'app/views/purchase/inventory_management.php';
+                            break;
+                        case 'materialWarehouseApproval':
+                            pagePath = 'app/views/purchase/warehouse_approval.php';
+                            break;
+                            
+                        // 物流发货模块
+                        case 'noGoldwindDelivery':
+                            pagePath = 'app/views/logistics/order_packing.php';
+                            break;
+                        case 'packingListQuery':
+                            pagePath = 'app/views/logistics/packing_list_query.php';
+                            break;
+                        case 'deliveryManage/supplierDeliveryMsg':
+                            pagePath = 'app/views/logistics/supplier_delivery.php';
+                            break;
+                            
+                        // 财务管理模块
+                        case 'receiptManagement':
+                            pagePath = 'app/views/finance/receipt_management.php';
+                            break;
+                        case 'paymentManagement':
+                            pagePath = 'app/views/finance/payment_management.php';
+                            break;
+                        case 'invoiceManagement':
+                            pagePath = 'app/views/finance/invoice_management.php';
+                            break;
+                        case 'contractPaymentPlans':
+                            pagePath = 'app/views/finance/contract_payment_plans.php';
+                            break;
+                            
+                        // 系统管理模块
+                        case 'userManagement':
+                            pagePath = 'app/views/system/user_management.php';
+                            break;
+                        case 'permissionConfiguration':
+                            pagePath = 'app/views/system/permission_configuration.php';
+                            break;
+                        case 'systemSettings':
+                            pagePath = 'app/views/system/system_settings.php';
+                            break;
+                            
+                        default:
+                            // 如果没有匹配的页面，显示错误信息
+                            mainContent.innerHTML = '<div class="error-message"><i class="el-icon-warning"></i> 页面不存在或正在开发中</div>';
+                            return;
+                    }
+                    
+                    // 使用AJAX加载页面内容
+                    $.ajax({
+                        url: pagePath,
+                        method: 'GET',
+                        success: function(data) {
+                            mainContent.innerHTML = data;
+                        },
+                        error: function(xhr, status, error) {
+                            console.error('页面加载失败:', error);
+                            mainContent.innerHTML = `<div class="error-message"><i class="el-icon-warning"></i> 页面加载失败: ${error}</div>`;
+                        }
+                    });
+                }
+            }
+            
             // 关闭标签函数
-            window.closeTab = function(tabId) {
+            window.closeTab = function(tabId, event) {
                 // 阻止事件冒泡
-                event.stopPropagation();
+                if (event) {
+                    event.stopPropagation();
+                }
                 
-                // 获取所有标签
+                // 检查是否为个人工作台标签
                 const tabs = document.querySelectorAll('.tab');
                 let tabIndex = -1;
                 let isActiveTab = false;
-                let tabsArray = [];
+                let isWorkspaceTab = false;
                 
-                // 构建标签数组并找到要关闭的标签索引
+                // 找到要关闭的标签索引和活动状态
                 tabs.forEach((tab, index) => {
-                    const id = tab.getAttribute('data-tab-id');
-                    const url = tab.getAttribute('data-tab-url');
-                    const title = tab.querySelector('.tab-title').textContent;
-                    const active = tab.classList.contains('active');
-                    
-                    tabsArray.push({ id, url, title, active });
-                    
-                    if (id === tabId) {
+                    if (tab.getAttribute('data-tab-id') === tabId) {
                         tabIndex = index;
-                        isActiveTab = active;
+                        isActiveTab = tab.classList.contains('active');
+                        const tabTitle = tab.querySelector('.tab-title').textContent;
+                        isWorkspaceTab = tabTitle.includes('个人工作台');
                     }
                 });
+                
+                // 如果是个人工作台标签，不允许关闭
+                if (isWorkspaceTab) {
+                    console.log('个人工作台标签不能关闭');
+                    return;
+                }
                 
                 if (tabIndex !== -1) {
                     // 发送AJAX请求关闭标签
                     $.ajax({
                         url: 'api/close_tab.php',
                         type: 'POST',
-                        data: { tab_id: tabId },
+                        data: {
+                            tab_id: tabId,
+                            csrf_token: getCsrfToken()
+                        },
                         success: function(response) {
-                            // 如果是当前激活的标签，则需要激活其他标签
-                            if (isActiveTab && tabsArray.length > 1) {
-                                // 优先激活左侧标签，如果没有则激活右侧标签
-                                const newActiveIndex = tabIndex > 0 ? tabIndex - 1 : tabIndex + 1;
-                                window.location.href = tabsArray[newActiveIndex].url;
-                            } else if (!isActiveTab) {
-                                // 如果关闭的不是当前标签，只需刷新页面更新标签栏
-                                location.reload();
+                            if (response.error) {
+                                console.error(response.error);
+                                return;
+                            }
+                            
+                            // 更新标签栏显示
+                            const tabContainer = document.querySelector('.tabs');
+                            if (tabContainer) {
+                                const tabToRemove = document.querySelector(`.tab[data-tab-id="${tabId}"]`);
+                                if (tabToRemove) {
+                                    tabToRemove.remove();
+                                }
+                            }
+                            
+                            // 检查是否还有其他非工作台标签
+                            const remainingTabs = document.querySelectorAll('.tab');
+                            let hasNonWorkspaceTabs = false;
+                            let workspaceTabId = null;
+                            
+                            remainingTabs.forEach(tab => {
+                                const tabTitle = tab.querySelector('.tab-title').textContent;
+                                if (!tabTitle.includes('个人工作台')) {
+                                    hasNonWorkspaceTabs = true;
+                                } else {
+                                    workspaceTabId = tab.getAttribute('data-tab-id');
+                                }
+                            });
+                            
+                            if (response.redirect) {
+                                // 如果有重定向URL，则跳转到该URL
+                                window.location.href = response.redirect;
+                            } else if (!hasNonWorkspaceTabs && workspaceTabId) {
+                                // 如果没有其他非工作台标签，激活工作台标签
+                                switchTab(workspaceTabId);
                             } else {
-                                // 如果关闭的是最后一个标签，返回工作台
-                                window.location.href = 'main.php';
+                                // 否则，使用AJAX重新加载当前页面内容
+                                const currentUrl = window.location.href;
+                                if (currentUrl.includes('#/')) {
+                                    const pageName = currentUrl.split('#/')[1];
+                                    loadFunctionPage(pageName);
+                                } else if (currentUrl.includes('main.php')) {
+                                    $.ajax({
+                                        url: 'api/workspace_data.php',
+                                        type: 'GET',
+                                        success: function(data) {
+                                            const mainContent = document.getElementById('mainContent');
+                                            if (mainContent) {
+                                                mainContent.innerHTML = data;
+                                            }
+                                        }
+                                    });
+                                }
                             }
                         },
-                        error: function() {
+                        error: function(xhr, status, error) {
+                            console.error('关闭标签失败:', error);
                             alert('关闭标签失败，请重试');
                         }
                     });

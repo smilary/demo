@@ -35,6 +35,25 @@ if (!isset($_SESSION['tabs']) || empty($_SESSION['tabs'])) {
     exit;
 }
 
+// 确保个人工作台标签始终存在
+$has_workspace_tab = false;
+foreach ($_SESSION['tabs'] as $tab) {
+    if (strpos($tab['title'], '个人工作台') !== false) {
+        $has_workspace_tab = true;
+        break;
+    }
+}
+
+// 如果没有个人工作台标签，添加一个
+if (!$has_workspace_tab) {
+    $_SESSION['tabs'][] = [
+        'id' => 'workspace_' . uniqid(),
+        'title' => '个人工作台',
+        'url' => 'main.php',
+        'active' => false
+    ];
+}
+
 // 查找标签并设置为活动状态
 $found = false;
 foreach ($_SESSION['tabs'] as $key => $tab) {

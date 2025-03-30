@@ -3,6 +3,32 @@
  * 用于处理菜单点击事件和加载对应的功能页面
  */
 
+// 保存标签到会话存储
+function saveTabToSession(title, url) {
+    // 生成唯一标签ID
+    const tabId = 'tab_' + new Date().getTime();
+    
+    // 使用AJAX将标签信息保存到会话
+    $.ajax({
+        url: 'api/save_tab.php',
+        type: 'POST',
+        data: {
+            tab_id: tabId,
+            title: title,
+            url: url,
+            csrf_token: $('meta[name="csrf-token"]').attr('content')
+        },
+        success: function(response) {
+            console.log('标签已保存到会话');
+        },
+        error: function(xhr, status, error) {
+            console.error('保存标签失败:', error);
+        }
+    });
+    
+    return tabId;
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // 为所有二级菜单项添加点击事件
     const menuItems = document.querySelectorAll('.submenu-container .el-menu-item');
@@ -44,6 +70,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 });
                 document.dispatchEvent(tabUpdateEvent);
+                
+                // 将标签信息保存到会话存储
+                saveTabToSession(menuTitle, window.location.href);
                 
                 // 确保标签显示
                 setTimeout(function() {

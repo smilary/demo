@@ -24,6 +24,15 @@ if (empty($tab_id) || !isset($_SESSION['tabs'])) {
     exit;
 }
 
+// 检查是否为个人工作台标签，如果是则不允许关闭
+foreach ($_SESSION['tabs'] as $tab) {
+    if ($tab['id'] === $tab_id && strpos($tab['title'], '个人工作台') !== false) {
+        header('Content-Type: application/json');
+        echo json_encode(['error' => '个人工作台标签不能关闭']);
+        exit;
+    }
+}
+
 // 查找要关闭的标签
 $tab_index = -1;
 $is_active_tab = false;
@@ -50,6 +59,20 @@ if ($tab_index >= 0) {
     if ($is_active_tab && count($_SESSION['tabs']) > 0) {
         // 确定要激活的标签索引
         $new_active_index = min($tab_index, count($_SESSION['tabs']) - 1);
+        
+        // 检查是否有个人工作台标签
+        $workspace_tab_index = -1;
+        foreach ($_SESSION['tabs'] as $index => $tab) {
+            if (strpos($tab['title'], '个人工作台') !== false) {
+                $workspace_tab_index = $index;
+                break;
+            }
+        }
+        
+        // 如果只剩下个人工作台标签，则激活它
+        if (count($_SESSION['tabs']) == 1 && $workspace_tab_index >= 0) {
+            $new_active_index = $workspace_tab_index;
+        }
         
         // 重置所有标签的激活状态
         foreach ($_SESSION['tabs'] as $index => $tab) {

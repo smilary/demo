@@ -14,7 +14,8 @@ $content_view = __FILE__;
 // 如果是直接访问此文件，则包含布局模板
 if (!defined('INCLUDED_IN_LAYOUT')) {
     define('INCLUDED_IN_LAYOUT', true);
-    require_once __DIR__.'/../../views/templates/layout.php';
+    $is_secondary_page = true; // 标记为二级功能页
+    require_once __DIR__.'/../templates/layout.php';
     exit;
 }
 
@@ -25,11 +26,11 @@ require_once __DIR__.'/../../../lib/contract_manager.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['add'])) {
         add_contract($_POST);
-        header("Location: #/contracts");
+        header("Location: contracts.php");
         exit;
     } elseif (isset($_POST['update'])) {
         update_contract($_POST['id'], $_POST);
-        header("Location: #/contracts");
+        header("Location: contracts.php");
         exit;
     }
 }
@@ -37,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // 处理删除请求
 if (isset($_GET['delete'])) {
     delete_contract($_GET['id']);
-    header("Location: #/contracts");
+    header("Location: contracts.php");
     exit;
 }
 
@@ -50,10 +51,12 @@ $result = get_active_contracts($search, $page, $per_page);
 $contracts = $result['data'];
 $total_pages = ceil($result['total'] / $per_page);
 
-// 获取已删除合同(回收站)
+// 获取合同列表(正常或回收站)
 if (isset($_GET['show_deleted'])) {
-    $deleted_result = get_contracts($search, $page, $per_page);
-    $deleted_contracts = $deleted_result['data'];
+    // 使用get_contracts函数获取已删除的合同
+    $result = get_contracts($search, $page, $per_page);
+    $contracts = $result['data'];
+    $total_pages = ceil($result['total'] / $per_page);
 }
 $edit_contract = isset($_GET['edit']) ? get_contract($_GET['id']) : null;
 ?>
@@ -80,9 +83,9 @@ $edit_contract = isset($_GET['edit']) ? get_contract($_GET['id']) : null;
         <div class="action-area">
             <button type="button" class="btn btn-primary" onclick="showAddForm()">新增合同</button>
             <?php if (!isset($_GET['show_deleted'])): ?>
-                <a href="?show_deleted=1" class="btn btn-secondary">查看回收站</a>
+                <a href="contracts.php?show_deleted=1" class="btn btn-secondary">查看回收站</a>
             <?php else: ?>
-                <a href="#/contracts" class="btn btn-secondary">返回合同列表</a>
+                <a href="contracts.php" class="btn btn-secondary">返回合同列表</a>
             <?php endif; ?>
         </div>
     </div>
@@ -90,7 +93,9 @@ $edit_contract = isset($_GET['edit']) ? get_contract($_GET['id']) : null;
     <!-- 合同表单 -->
     <div id="contractForm" class="form-container" style="display: <?= $edit_contract ? 'block' : 'none' ?>">
         <h3><?= $edit_contract ? '编辑合同' : '新增合同' ?></h3>
-        <form method="post">
+        <div id="formMessage" class="alert" style="display: none;"></div>
+        <form id="contractFormData" method="post">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
             <?php if ($edit_contract): ?>
                 <input type="hidden" name="id" value="<?= $edit_contract['id'] ?>">
             <?php endif; ?>
@@ -130,7 +135,7 @@ $edit_contract = isset($_GET['edit']) ? get_contract($_GET['id']) : null;
             <div class="form-row">
                 <div class="form-group">
                     <label>合同金额:</label>
-                    <input type="number" step="0.01" name="amount"
+                    <input type="number" step="0.01" name="amount" required
                            value="<?= $edit_contract ? htmlspecialchars($edit_contract['amount']) : '' ?>">
                 </div>
                 
@@ -172,9 +177,9 @@ $edit_contract = isset($_GET['edit']) ? get_contract($_GET['id']) : null;
             
             <div class="form-actions">
                 <?php if ($edit_contract): ?>
-                    <button type="submit" name="update" class="btn btn-primary">更新合同</button>
+                    <button type="button" id="updateContractBtn" class="btn btn-primary">更新合同</button>
                 <?php else: ?>
-                    <button type="submit" name="add" class="btn btn-primary">保存合同</button>
+                    <button type="button" id="addContractBtn" class="btn btn-primary">保存合同</button>
                 <?php endif; ?>
                 <button type="button" class="btn btn-secondary" onclick="hideForm()">取消</button>
             </div>
@@ -275,5 +280,75 @@ function showAddForm() {
 function hideForm() {
     document.getElementById('contractForm').style.display = 'none';
     window.location.href = '#/contracts';
+}
+
+// 添加合同表单提交处理
+document.addEventListener('DOMContentLoaded', function() {
+    // 添加合同按钮点击事件
+    const addContractBtn = document.getElementById('addContractBtn');
+    if (addContractBtn) {
+        addContractBtn.addEventListener('click', function() {
+            submitContractForm('add');
+        });
+    }
+    
+    // 更新合同按钮点击事件
+    const updateContractBtn = document.getElementById('updateContractBtn');
+    if (updateContractBtn) {
+        updateContractBtn.addEventListener('click', function() {
+            submitContractForm('update');
+        });
+    }
+});
+
+// 提交合同表单
+function submitContractForm(action) {
+    const form = document.getElementById('contractFormData');
+    const formData = new FormData(form);
+    
+    // 显示加载状态
+    const messageDiv = document.getElementById('formMessage');
+    messageDiv.className = 'alert alert-info';
+    messageDiv.textContent = '正在提交数据，请稍候...';
+    messageDiv.style.display = 'block';
+    
+    // 设置请求URL
+    const url = action === 'add' ? '../api/add_contract.php' : '../api/update_contract.php';
+    
+    // 发送AJAX请求
+    fetch(url, {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            // 显示错误信息
+            messageDiv.className = 'alert alert-danger';
+            messageDiv.textContent = data.error + (data.message ? ': ' + data.message : '');
+        } else if (data.success) {
+            // 显示成功信息
+            messageDiv.className = 'alert alert-success';
+            messageDiv.textContent = data.message || '操作成功';
+            
+            // 如果有重定向URL，则跳转
+            if (data.redirect) {
+                setTimeout(function() {
+                    window.location.href = data.redirect;
+                }, 1000);
+            } else {
+                // 否则刷新当前页面
+                setTimeout(function() {
+                    window.location.reload();
+                }, 1000);
+            }
+        }
+    })
+    .catch(error => {
+        // 显示网络错误
+        messageDiv.className = 'alert alert-danger';
+        messageDiv.textContent = '提交请求失败: ' + error.message;
+    });
 }
 </script>

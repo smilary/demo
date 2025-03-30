@@ -14,6 +14,7 @@ $content_view = __FILE__;
 // 如果是直接访问此文件，则包含布局模板
 if (!defined('INCLUDED_IN_LAYOUT')) {
     define('INCLUDED_IN_LAYOUT', true);
+    $is_secondary_page = true; // 标记为二级功能页
     require_once __DIR__.'/../../views/templates/layout.php';
     exit;
 }
